@@ -1,7 +1,7 @@
 ---
 name: bug-fix-workflow
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   author: reeves_zd
   recommends:
     - superpowers:systematic-debugging
@@ -13,27 +13,19 @@ metadata:
     - superpowers:finishing-a-development-branch
     - agent-browser
 description: |
-  Bug 修复工作流，强调先复现、后修复。基于 Superpowers 技能体系。
+  Bug 修复工作流，铁律: 无法复现 = 禁止修改代码。基于 Superpowers 技能体系。
 
-  即使是一个简单的 bug，也应该使用这个 skill 来确保修复质量。
+  即使是简单的 bug，也应使用此技能确保修复质量。
+  支持参数: --quick 快速模式（4 阶段流程）
 
-  调用方式: 自动触发 或 用户说 "用 bug-fix-workflow"
-  参数: 加 --quick 进入快速模式
+  触发条件:
+  - Bug fix: fix bug, debug, hotfix, troubleshoot, diagnose, patch, crash, exception, error, issue
+  - 功能异常: "不工作了"、"报错了"、"挂了"、"崩溃"、"异常"、"失败"、"错误"
+  - 测试失败: "测试挂了"、"CI 红了"、"test failed"、"tests broken"
+  - 问题排查: 调试、排查、故障、线上问题、regression、incident
 
-  触发词 (出现以下任一情况时触发):
-  - 明确的 bug 修复: bug修复、修bug、修复问题、解决bug、fix bug、debug
-  - 问题排查类: 调试、排查、故障、hotfix、紧急修复、线上问题、崩溃
-  - 功能异常类: "不工作了"、"报错了"、"挂了"、"异常"、"失败"、"错误"
-  - 测试相关: "测试挂了"、"测试失败"、"CI 红了"
-  - 用户反馈: "用户反馈"、"投诉"、"工单"
-
-  使用场景:
-  - "修复用户登录页面崩溃的 bug"
-  - "这个功能突然不工作了"
-  - "测试挂了，帮我看看"
-  - "用户反馈导出报表失败"
-  - "线上报错了，紧急修复"
-  - "这个 P0 紧急 bug 需要马上修"
+  不适用场景（使用 superpowers-workflow）:
+  - 新功能开发、重构、性能优化、新增需求
 ---
 
 # Iron Law
@@ -49,6 +41,8 @@ description: |
 - 跳过测试直接写修复
 - "试试看这个改动能不能修好"
 
+**优先级**: CLAUDE.md/AGENTS.md > 本工作流 > 默认行为
+
 ---
 
 ## 参数
@@ -57,10 +51,6 @@ description: |
 |-----|------|
 | (无参数) | 完整 8 阶段流程 |
 | `--quick` | 快速模式：跳过环境准备和代码审查，合并调试+修复阶段 |
-
----
-
-每个阶段的详细输出模板见下方「阶段详情」章节。统一格式: 阶段标题 → 状态 → 技能加载结果 → 操作输出 → 确认门。
 
 ---
 
@@ -82,33 +72,9 @@ UI Bug 复现（阶段 2）和完成前验证（阶段 6）涉及浏览器操作
 
 ---
 
-## 阶段过渡提示规范
+## 阶段过渡
 
-每个阶段**开始前**和**完成后**，必须输出视觉标识。阶段详情中的 `━━━` 模板是阶段**内部**输出格式，过渡提示是阶段**之间**的标记，两者互补。
-
-### 阶段开始格式
-
-```
-> 🚀 **阶段 N 开始: [阶段名称]**
-> 📍 [一句话描述本阶段目标]
-```
-
-### 阶段完成格式
-
-```
-> 🏆 **阶段 N 完成: [阶段名称]**
-> ✅ [一句话总结阶段成果]
-```
-
-### 示例
-
-**阶段 2 开始**:
-> 🚀 **阶段 2 开始: 复现 Bug**
-> 📍 使用复现步骤确认 Bug 可稳定复现
-
-**阶段 2 完成**:
-> 🏆 **阶段 2 完成: 复现 Bug**
-> ✅ 尝试 3 次，成功复现 3 次，已记录复现证据
+每个阶段开始输出 `> **阶段 N 开始: [名称]** — [目标]`，完成时输出 `> **阶段 N 完成: [名称]** — [成果]`。
 
 ---
 
@@ -213,186 +179,80 @@ Bug 快速修复进度:
 
 ## 阶段详情
 
-### 阶段 1: 接收 Bug 报告
+阶段详情仅包含输出模板，操作步骤见上方检查清单。
+
+### 阶段 1 输出
 
 ```
 ━━━ 阶段 1: 接收 Bug 报告 ━━━
-状态: ⏳ 进行中
-
 收集信息:
   期望行为: <用户期望的结果>
   实际行为: <实际发生的结果>
   复现步骤: <如何触发>
   环境: <版本/浏览器/OS>
   错误信息: <日志/截图/堆栈>
-
 评估:
-  严重程度: P? (紧急/高/中/低)
-  影响范围: <受影响的功能/用户>
+  严重程度: P?  影响范围: <描述>
 
 ⛔ 最低信息检查:
-  [ ] 期望行为 — 已确认
-  [ ] 实际行为 — 已确认
-  [ ] 复现步骤 — 至少一个
-  → 全部通过 → 进入阶段 2
-  → 缺少项目 → 请求补充
+  [ ] 期望行为  [ ] 实际行为  [ ] 复现步骤 (至少一个)
+  → 全部通过 → 阶段 2  → 缺少 → 请求补充
 ```
 
-### 阶段 2: 复现 Bug
+### 阶段 2 输出
 
-**技能**: 参考"Web 验证工具选择" (UI bug) / 命令行 (API/后端 bug)
-
-**铁律**: 无法复现 = 禁止进入下一阶段
-
-→ 加载 `references/reproduction-methods.md` 选择复现方式
+UI bug 参考"Web 验证工具选择"，非 UI bug 用命令行。→ 加载 `references/reproduction-methods.md`
 
 ```
 ━━━ 阶段 2: 复现 Bug ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  浏览器工具 → ✅ 已选择 (UI bug) / ⏭️ 跳过 (非 UI bug)
-
-复现方式: <UI自动化 / API调用 / 命令行 / 测试脚本>
-复现结果:
-  尝试 N 次，成功复现 N 次
-  复现证据: <截图/日志/命令输出>
-
-→ ✅ 可稳定复现 → 进入阶段 3
-→ ❌ 无法复现 → 加载 references/reproduction-fallback.md
+复现方式: <UI/API/命令行/测试脚本>
+尝试 N 次，成功复现 N 次
+复现证据: <截图/日志/命令输出>
+→ 可稳定复现 → 阶段 3  → 无法复现 → references/reproduction-fallback.md
 ```
 
-### 阶段 3: 系统化调试
+### 阶段 3 输出
 
-**技能**: `superpowers:systematic-debugging`
-
-**范围**: 仅用于根因分析。TDD 修复在阶段 5 进行。
+调用 `superpowers:systematic-debugging`，仅根因分析。
 
 ```
 ━━━ 阶段 3: 系统化调试 ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  superpowers:systematic-debugging → ✅ 已加载 / ❌ 加载失败，使用内置流程
-
-调试循环:
-  🔍 收集证据 → 💡 形成假设 → 🧪 设计实验 → ⚡ 验证
-      ↑_________________________________|
-           (假设错误时返回)
-
-⛔ 根因确认 (必须输出):
-  根本原因: <一句话描述>
-  涉及文件: <file:line>
-  验证证据: <证明这是根因的证据>
-
+⛔ 根因确认 (必须):
+  根本原因: <一句话>  涉及文件: <file:line>  验证证据: <描述>
 → 确认门: "根本原因是 X，准备进入修复阶段，确认吗？"
 ```
 
-### 阶段 4: 环境准备
+### 阶段 4 输出
 
-**技能**: `superpowers:using-git-worktrees`
+调用 `superpowers:using-git-worktrees`。3+ 文件修改或影响范围大时建议隔离，单文件可跳过。
 
-**判断是否需要隔离**:
-- 修改涉及 3+ 文件 → 建议隔离
-- 影响范围不确定 → 建议隔离
-- 需要 PR 流程 → 建议隔离
-- 单文件简单修复 → 可跳过
+### 阶段 5 输出
 
-```
-━━━ 阶段 4: 环境准备 ━━━
-状态: ⏳ 进行中
-
-隔离判断:
-  修改文件数: ?
-  影响范围: ?
-  → 需要隔离 / ⏭️ 跳过
-
-[技能加载]
-  superpowers:using-git-worktrees → ✅ 已加载 / ⏭️ 跳过
-```
-
-### 阶段 5: TDD 修复循环
-
-**技能**: `superpowers:test-driven-development`
-
-**铁律**: 没有失败的测试，就不写修复代码
-
-→ 加载 `references/tdd-fix-guide.md` 获取详细指南（含无法单元测试的替代方案）
+调用 `superpowers:test-driven-development`。→ 加载 `references/tdd-fix-guide.md`
 
 ```
 ━━━ 阶段 5: TDD 修复循环 ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  superpowers:test-driven-development → ✅ 已加载 / ❌ 加载失败，使用内置流程
-
-🔴 RED — 编写失败测试:
-  测试: <测试名>
-  预期: 因 Bug 而失败
-  实际: ❌ <失败信息>
-
-🟢 GREEN — 最小修复:
-  修改: <file:line>
-  测试: ✅ 通过
-
-📦 回归测试:
-  命令: <test command>
-  结果: N passed, 0 failed
+RED:  测试 <名称> — FAIL <原因>
+GREEN: 修改 <file:line> — PASS
+回归:  命令 <cmd> — N passed, 0 failed
 ```
 
-### 阶段 6: 完成前验证
+### 阶段 6 输出
 
-**技能**: `superpowers:verification-before-completion`
-
-**铁律**: 没有验证证据，就不能声称修复完成
-
-→ 加载 `references/verification-guide.md` 获取详细清单
+调用 `superpowers:verification-before-completion`。→ 加载 `references/verification-guide.md`
 
 ```
 ━━━ 阶段 6: 完成前验证 ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  superpowers:verification-before-completion → ✅ 已加载 / ❌ 加载失败，使用内置流程
-
-验证结果:
-  [ ] 全部测试: N passed, 0 failed
-  [ ] lint/type: 通过
-  [ ] 原复现步骤: Bug 不再出现
-  [ ] 对比证据: 修复前 + 修复后
-
+[ ] 全部测试: N passed, 0 failed
+[ ] lint/type: 通过
+[ ] 原复现步骤: Bug 不再出现
+[ ] 对比证据: 修复前 + 修复后
 → 确认门: "Bug 已修复，可以提交吗？"
 ```
 
-### 阶段 7: 代码审查
+### 阶段 7-8 输出
 
-**技能**: `superpowers:requesting-code-review` + `superpowers:receiving-code-review`
-
-```
-━━━ 阶段 7: 代码审查 ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  superpowers:requesting-code-review → ✅ 已加载 / ❌ 加载失败
-  superpowers:receiving-code-review → ✅ 已加载 / ❌ 加载失败
-
-审查结果: 通过 / 有修改建议
-```
-
-### 阶段 8: 完成分支
-
-**技能**: `superpowers:finishing-a-development-branch`
-
-```
-━━━ 阶段 8: 完成分支 ━━━
-状态: ⏳ 进行中
-
-[技能加载]
-  superpowers:finishing-a-development-branch → ✅ 已加载 / ❌ 加载失败
-
-完成方式: merge / PR / keep
-Bug 状态: 已更新
-```
+依次调用 `superpowers:requesting-code-review` + `receiving-code-review` + `finishing-a-development-branch`。
 
 ---
 
@@ -404,6 +264,13 @@ Bug 状态: 已更新
 2. **复现失败** (阶段 2): "无法复现，需要更多信息或进行代码审查分析"
 3. **根因确认** (阶段 3): "根本原因是 X，准备进入修复阶段，确认吗？"
 4. **修复完成** (阶段 6): "Bug 已修复，可以提交吗？"
+
+## 转交条件
+
+以下情况应转交 `superpowers-workflow`:
+- 排查后发现不是 bug，而是需要新功能或需求变更
+- 修复过程中发现需要大规模重构
+- 用户在修复过程中追加了新需求
 
 ---
 

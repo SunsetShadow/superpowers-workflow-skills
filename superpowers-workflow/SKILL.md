@@ -1,17 +1,21 @@
 ---
 name: superpowers-workflow
 metadata:
-  version: 1.5.0
+  version: 1.9.0
   author: reeves_zd
 description: |
-  End-to-end feature development workflow with TDD enforcement. Use when user
-  asks to build, create, implement, develop, add, design, code, or ship new
-  features, functionality, modules, components, services, APIs, endpoints,
-  pages, or capabilities. Triggers on: 新需求、新功能、add feature、
-  implement、build、create、develop、new module、新特性、功能开发、
-  头脑风暴、TDD、测试驱动、代码审查. Supports --quick for simple tasks
-  (4-phase flow). Projects: web app, backend service, CLI tool, library,
-  API, microservice, monolith.
+  端到端功能开发工作流，铁律: 设计批准前禁止实现。TDD 强制 + 设计审阅门。
+
+  用于任何新功能开发，从"加个按钮"到完整系统设计。即使是看似简单的需求也应触发。
+  支持参数: --quick 快速模式（4 阶段流程）
+
+  触发条件:
+  - 新功能/新需求: 新功能、新需求、add feature、implement、build、develop
+  - 开发类: 做个接口、写个服务、加个字段/页面/按钮/组件、实现/开发/搭建一个
+  - 设计类: 功能设计、架构设计、需求分析
+
+  不适用场景（使用 bug-fix-workflow）:
+  - bug 修复、问题排查、故障诊断、hotfix
 ---
 
 # IRON LAW
@@ -28,16 +32,22 @@ NO IMPLEMENTATION BEFORE DESIGN APPROVAL. NEVER.
 - 跳过测试直接写实现
 - 想到 "这个很简单，不用设计"
 
-## 技能调用方式
+## 执行模式选择
 
-本工作流调用 superpowers 插件技能，使用 `Skill` 工具：
+阶段 3 需要根据计划特征选择执行方式:
 
-```
-Skill(skill="superpowers:brainstorming")
-Skill(skill="superpowers:writing-plans")
-Skill(skill="superpowers:executing-plans")
-...
-```
+| 模式 | 技能 | 适用场景 |
+|------|------|---------|
+| **Subagent-Driven (推荐)** | `Skill(skill="superpowers:subagent-driven-development")` | 计划有 3+ 任务、任务间相对独立 |
+| **Inline Execution** | `Skill(skill="superpowers:executing-plans")` | 计划只有 1-2 个任务、任务间高度依赖 |
+| **Parallel Dispatch** | `Skill(skill="superpowers:dispatching-parallel-agents")` | 计划有 2+ 完全独立的任务可并行 |
+
+选择依据:
+- 默认推荐 Subagent-Driven（每个任务派发独立 agent，两阶段审查，上下文隔离）
+- 任务数 ≤ 2 且高度耦合时用 Inline（减少派发开销）
+- 前后端分离、多个独立模块可同时推进时用 Parallel Dispatch
+
+---
 
 ## Web 验证工具选择
 
@@ -78,24 +88,31 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
   - [ ] 1.2 探索项目上下文 (文件、文档、最近提交)
   - [ ] 1.3 逐个提问澄清需求 (目的、约束、成功标准)
   - [ ] 1.4 提出 2-3 种方案及权衡
-  - [ ] 1.5 编写设计文档到 docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md (用户偏好路径优先)
-  - [ ] 1.6 展示完整设计文档并请求审阅 ⛔ BLOCKING
+  - [ ] 1.5 按需加载文档模板 (参见"文档模板"章节)
+  - [ ] 1.6 编写文档产出:
+    - Proposal → `docs/changes/<change-id>/proposal.md`
+    - Spec Delta → `docs/changes/<change-id>/specs/<area>/spec-delta.md`
+    - (用户偏好路径优先)
+  - [ ] 1.7 展示完整文档并请求审阅 ⛔ BLOCKING
 
 - [ ] 阶段 2: 编写计划
-  - [ ] 2.1 调用 Skill(skill="superpowers:writing-plans")
-  - [ ] 2.2 输出实施步骤、文件列表、风险点、测试策略到 docs/superpowers/plans/
+  - [ ] 2.1 (可选) 如需隔离环境，先调用 Skill(skill="superpowers:using-git-worktrees") 设置 worktree
+  - [ ] 2.2 调用 Skill(skill="superpowers:writing-plans")
+  - [ ] 2.3 输出两份文档 (各有分工):
+    - tasks.json → `docs/changes/<change-id>/tasks.json` (做什么 + 完成状态跟踪)
+    - Implementation Plan → `docs/plans/YYYY-MM-DD-<feature>.md` (怎么做 + 代码/命令/TDD 步骤)
 
 - [ ] 阶段 3: 执行计划
-  - [ ] 3.1 调用 Skill(skill="superpowers:executing-plans")
-  - [ ] 3.2 按步骤执行，记录偏差和调整
+  - [ ] 3.1 选择执行模式 (参考"执行模式选择")
+  - [ ] 3.2 按选定模式执行，记录偏差和调整
 
 - [ ] 阶段 4: 开发前验证
   - [ ] 4.1 技术可行性检查 (依赖、兼容性)
   - [ ] 4.2 (仅 Web 应用) 参考"Web 验证工具选择"选择工具
   - [ ] 4.3 (仅 Web 应用) 验证现有 UI 并保存基线截图
 
-- [ ] 阶段 5: 环境准备 (可选)
-  - [ ] 5.1 如需隔离开发，调用 Skill(skill="superpowers:using-git-worktrees")
+- [ ] 阶段 5: 环境准备 (可已在阶段 2 完成)
+  - [ ] 5.1 如阶段 2 未设置 worktree 且需隔离开发，调用 Skill(skill="superpowers:using-git-worktrees")
 
 - [ ] 阶段 6: TDD 开发循环 ⚠️ REQUIRED
   - [ ] 6.1 调用 Skill(skill="superpowers:test-driven-development")
@@ -152,33 +169,9 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 
 ---
 
-## 阶段过渡提示规范
+## 阶段过渡
 
-每个阶段开始和完成时，必须输出视觉标识提示。
-
-### 阶段开始格式
-
-```
-> 🚀 **阶段 N 开始: [阶段名称]**
-> 📍 [一句话描述本阶段目标]
-```
-
-### 阶段完成格式
-
-```
-> 🏆 **阶段 N 完成: [阶段名称]**
-> ✅ [一句话总结阶段成果]
-```
-
-### 示例
-
-**开始**:
-> 🚀 **阶段 1 开始: 头脑风暴**
-> 📍 探索需求，产出设计方案
-
-**完成**:
-> 🏆 **阶段 1 完成: 头脑风暴**
-> ✅ 设计文档已通过审阅，路径: docs/superpowers/specs/2026-03-29-auth-design.md
+每个阶段开始输出 `> **阶段 N 开始: [名称]** — [目标]`，完成时输出 `> **阶段 N 完成: [名称]** — [成果]`。
 
 ---
 
@@ -201,6 +194,13 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 2. **验证失败**: "验证发现问题，需要调整计划"
 3. **功能完成**: "功能已完成，可以进入下一步吗？"
 
+## 转交条件
+
+以下情况应转交 `bug-fix-workflow`:
+- 开发过程中发现现有功能 bug（先修 bug 再继续开发）
+- 需求分析时发现用户描述的实际是 bug 而非新需求
+- CI 测试失败需要先修复
+
 ---
 
 ## 反模式
@@ -215,89 +215,65 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 
 → 加载 `references/anti-patterns.md` 获取完整列表
 
+## 文档模板
+
+按阶段按需加载，不要一次全部读取:
+
+| 阶段 | 加载文件 | 内容 |
+|------|---------|------|
+| 阶段 1 (完整变更) | `references/doc-proposal.md` + `references/doc-spec-delta.md` | Proposal + Spec Delta 模板与示例 |
+| 阶段 1 (简单需求) | `references/doc-plans.md` (设计文档部分) | 设计文档模板与示例 |
+| 阶段 2 | `references/doc-tasks.md` + `references/doc-plans.md` (实施计划部分) | Tasks JSON + Implementation Plan 模板与示例 |
+
 ---
 
 ## 阶段详情
 
+阶段详情补充检查清单，操作步骤见上方。
+
 ### 阶段 1: 头脑风暴
 
-**调用**: `Skill(skill="superpowers:brainstorming")`
+调用 `superpowers:brainstorming`。路径覆盖: 使用 `docs/changes/<change-id>/` 而非默认路径。
 
-**问题清单**:
-- 这个功能的目的是什么？
-- 有什么技术约束？
-- 成功标准是什么？
-
-**输出**: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+核心问题: 功能目的？技术约束？成功标准？→ 按需加载文档模板
 
 #### 设计审阅流程 ⛔ BLOCKING
 
-设计文档完成后，必须执行以下流程：
+1. 直接输出完整文档到对话（不要只写路径）
+2. 用 `AskUserQuestion` 提供: 通过 / 修改 / 其他
+3. 用户选"通过" → 阶段 2；选"修改" → 返回重设计；选"其他" → 处理后重新询问
 
-**第一步**: 直接输出完整设计文档内容到对话中（不要只说"文档已写好"）
-
-**第二步**: 使用 `AskUserQuestion` 工具提供以下选择：
-
-```
-问题: "请审阅上方设计文档，选择下一步操作："
-选项:
-  1. ✅ 通过审阅，继续下一阶段
-  2. 🔄 提出修改意见，重新调整设计
-  3. 💬 输入其他内容
-```
-
-**用户选择处理**:
-- 选 1 → 输出 🏆 完成提示，进入阶段 2
-- 选 2 → 收集修改意见，返回步骤 1.4 重新设计方案，再次进入审阅流程
-- 选 3 → 根据用户输入内容处理，处理完毕后重新询问审阅选择
-
-**禁止**:
-- 禁止只写文件路径不展示内容
-- 禁止省略设计文档直接问"可以吗？"
-- 禁止跳过 AskUserQuestion 直接继续
+禁止: 只写路径不展示内容 / 省略文档直接问"可以吗" / 跳过 AskUserQuestion
 
 ### 阶段 2-3: 计划与执行
 
-依次调用:
-- `Skill(skill="superpowers:writing-plans")` → 输出计划到 `docs/superpowers/plans/`
-- `Skill(skill="superpowers:executing-plans")` → 按计划执行
+阶段 2: 调用 `superpowers:writing-plans` → 输出 `tasks.json` + Implementation Plan（格式参考 `references/doc-tasks.md` + `references/doc-plans.md`）
 
-### 阶段 4: 开发前验证
+阶段 3: 选择执行模式（参考"执行模式选择"）
 
-**所有项目**: 技术可行性检查（依赖、兼容性）
+> **tasks.json**: 轻量跟踪（做什么 + 状态） | **Implementation Plan**: 详细指南（怎么做 + TDD 步骤）
 
-**仅 Web 应用**: 参考"Web 验证工具选择"选择工具，验证现有 UI 并保存基线截图
+### 阶段 4-5: 开发验证与准备
 
-### 阶段 5: 环境准备
+阶段 4: 技术可行性检查。Web 应用参考"Web 验证工具选择"保存基线截图。
 
-**可选隔离**: `Skill(skill="superpowers:using-git-worktrees")`
+阶段 5: 可选 worktree 隔离（`superpowers:using-git-worktrees`）。阶段 2 已设置则跳过。
 
 ### 阶段 6: TDD 开发循环
 
-**调用**: `Skill(skill="superpowers:test-driven-development")`
+调用 `superpowers:test-driven-development`。遇到 bug 调用 `superpowers:systematic-debugging`。
 
-```
-🔴 RED → ⚡验证 → 🟢 GREEN → ⚡验证 → 🔵 REFACTOR
-```
-
-→ 加载 `references/tdd-guide.md` 获取详细指南
+→ 加载 `references/tdd-guide.md`
 
 ### 阶段 7: 完成前验证
 
-**调用**: `Skill(skill="superpowers:verification-before-completion")`
+调用 `superpowers:verification-before-completion`。必须提供: 命令 + 输出 + 退出码。Web 应用截图对比基线。
 
-**必须提供**: 命令 + 完整输出 + 退出码
-
-**仅 Web 应用**: 参考"Web 验证工具选择"选择工具，验证新功能并截图对比基线
-
-→ 加载 `references/verification-guide.md` 获取详细清单
+→ 加载 `references/verification-guide.md`
 
 ### 阶段 8-9: 代码审查与完成
 
-依次调用:
-- `Skill(skill="superpowers:requesting-code-review")`
-- `Skill(skill="superpowers:receiving-code-review")`
-- `Skill(skill="superpowers:finishing-a-development-branch")`
+依次调用: `requesting-code-review` → `receiving-code-review` → `finishing-a-development-branch`
 
 ---
 
@@ -325,7 +301,8 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 
 ### 完整模式额外检查
 
-- [ ] 设计文档已输出到 `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+- [ ] 文档已输出到 `docs/changes/<change-id>/` 目录 (proposal.md + specs/ + tasks.json)
+- [ ] change-id 命名符合 kebab-case 规则 (add-/fix-/migrate-/update-)
 - [ ] 文件名无 placeholder (无 "xxx", "topic")
 - [ ] (仅 Web 应用) 浏览器验证新功能（参见"Web 验证工具选择"）
 - [ ] (仅 Web 应用) 截图对比改动前后
