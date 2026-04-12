@@ -1,14 +1,13 @@
 ---
 name: bug-fix-workflow
 metadata:
-  version: 1.3.0
+  version: 2.0.0
   author: reeves_zd
   recommends:
     - superpowers:systematic-debugging
     - superpowers:verification-before-completion
     - superpowers:requesting-code-review
     - superpowers:receiving-code-review
-    - superpowers:test-driven-development
     - superpowers:using-git-worktrees
     - superpowers:finishing-a-development-branch
     - agent-browser
@@ -49,14 +48,14 @@ description: |
 
 | 参数 | 说明 |
 |-----|------|
-| (无参数) | 完整 8 阶段流程 |
+| (无参数) | 完整 7 阶段流程 |
 | `--quick` | 快速模式：跳过环境准备和代码审查，合并调试+修复阶段 |
 
 ---
 
 ## Web 验证工具选择
 
-UI Bug 复现（阶段 2）和完成前验证（阶段 6）涉及浏览器操作，需先选择工具，选定后统一使用。
+UI Bug 复现（阶段 2）和完成前验证（阶段 5）涉及浏览器操作，需先选择工具，选定后统一使用。
 
 **默认: Playwright MCP 内置工具**
 - 场景: 页面截图、快照、元素交互、Bug 复现、截图对比
@@ -89,13 +88,13 @@ UI Bug 复现（阶段 2）和完成前验证（阶段 6）涉及浏览器操作
 | P2 中 | 本周内 | feature → develop | 必须 | 建议 |
 | P3 低 | 排期 | feature → develop | 必须 | 建议 |
 
-**P0 紧急 bug 例外**: 阶段 4 (环境准备) 和阶段 7 (代码审查) 可跳过，但必须在修复完成后 24h 内补齐审查。
+**P0 紧急 bug 例外**: 阶段 3 (环境准备) 和阶段 6 (代码审查) 可跳过，但必须在修复完成后 24h 内补齐审查。
 
 ---
 
 ## 工作流检查清单
 
-### 完整流程 (8 阶段)
+### 完整流程 (7 阶段)
 
 ```
 Bug 修复进度:
@@ -117,37 +116,31 @@ Bug 修复进度:
   - [ ] 2.4 记录复现证据 (截图/日志/命令输出)
   - [ ] 2.5 (无法复现 → 无法复现处理流程)
 
-- [ ] 阶段 3: 系统化调试 ⚠️ REQUIRED
-  - [ ] 3.1 调用 superpowers:systematic-debugging (仅根因分析)
-  - [ ] 3.2 收集证据 → 形成假设 → 设计实验 → 验证
-  - [ ] 3.3 确认根本原因 ⛔ BLOCKING
+- [ ] 阶段 3: 环境准备 (根据严重程度决定)
+  - [ ] 3.1 判断是否需要隔离 (多文件修改/影响范围大/需要 PR)
+  - [ ] 3.2 如需隔离，调用 superpowers:using-git-worktrees
 
-- [ ] 阶段 4: 环境准备 (根据严重程度决定)
-  - [ ] 4.1 判断是否需要隔离 (多文件修改/影响范围大/需要 PR)
-  - [ ] 4.2 如需隔离，调用 superpowers:using-git-worktrees
+- [ ] 阶段 4: 调试与修复 ⚠️ REQUIRED
+  - [ ] 4.1 调用 superpowers:systematic-debugging (完整 4 阶段)
+  - [ ] 4.2 Phase 1-3: 根因调查 → 模式分析 → 假设验证
+  - [ ] 4.3 确认根本原因 ⛔ BLOCKING
+  - [ ] 4.4 Phase 4: 创建失败测试 + 实现修复 (已内部包含 TDD)
+  - [ ] 4.5 ⛔ systematic-debugging 完成后，回到主流程阶段 5
 
-- [ ] 阶段 5: TDD 修复循环 ⚠️ REQUIRED
-  - [ ] 5.1 调用 superpowers:test-driven-development
-  - [ ] 5.2 RED: 编写失败的测试 (复现 Bug)
-  - [ ] 5.3 验证 RED: 确认测试失败
-  - [ ] 5.4 GREEN: 写最小修复代码
-  - [ ] 5.5 验证 GREEN: 确认测试通过
-  - [ ] 5.6 回归测试: 确认其他测试仍通过
+- [ ] 阶段 5: 完成前验证 ⚠️ REQUIRED ⛔ BLOCKING
+  - [ ] 5.1 调用 superpowers:verification-before-completion
+  - [ ] 5.2 运行全部测试，确认 0 failures
+  - [ ] 5.3 运行 lint/type 检查
+  - [ ] 5.4 使用原复现步骤验证 Bug 已修复
+  - [ ] 5.5 提供修复前后对比证据
 
-- [ ] 阶段 6: 完成前验证 ⚠️ REQUIRED ⛔ BLOCKING
-  - [ ] 6.1 调用 superpowers:verification-before-completion
-  - [ ] 6.2 运行全部测试，确认 0 failures
-  - [ ] 6.3 运行 lint/type 检查
-  - [ ] 6.4 使用原复现步骤验证 Bug 已修复
-  - [ ] 6.5 提供修复前后对比证据
+- [ ] 阶段 6: 代码审查 (P0 可后补)
+  - [ ] 6.1 调用 superpowers:requesting-code-review
+  - [ ] 6.2 调用 superpowers:receiving-code-review
 
-- [ ] 阶段 7: 代码审查 (P0 可后补)
-  - [ ] 7.1 调用 superpowers:requesting-code-review
-  - [ ] 7.2 调用 superpowers:receiving-code-review
-
-- [ ] 阶段 8: 完成分支
-  - [ ] 8.1 调用 superpowers:finishing-a-development-branch
-  - [ ] 8.2 更新 Bug 报告状态
+- [ ] 阶段 7: 完成分支
+  - [ ] 7.1 调用 superpowers:finishing-a-development-branch
+  - [ ] 7.2 更新 Bug 报告状态
 ```
 
 ### 快速流程 (--quick)
@@ -164,9 +157,9 @@ Bug 快速修复进度:
   - [ ] 确认可稳定复现
   - [ ] 记录复现证据
 
-- [ ] 阶段 3: 调试 + TDD 修复 ⚠️ REQUIRED
-  - [ ] 找到根因
-  - [ ] RED → GREEN 循环
+- [ ] 阶段 3: 调试与修复 ⚠️ REQUIRED
+  - [ ] 调用 superpowers:systematic-debugging (完整流程，含 TDD)
+  - [ ] 根因确认 + RED → GREEN 循环
 
 - [ ] 阶段 4: 验证 ⚠️ REQUIRED ⛔ BLOCKING
   - [ ] 测试通过、Bug 已修复
@@ -213,36 +206,32 @@ UI bug 参考"Web 验证工具选择"，非 UI bug 用命令行。→ 加载 `re
 
 ### 阶段 3 输出
 
-调用 `superpowers:systematic-debugging`，仅根因分析。
-
-```
-━━━ 阶段 3: 系统化调试 ━━━
-⛔ 根因确认 (必须):
-  根本原因: <一句话>  涉及文件: <file:line>  验证证据: <描述>
-→ 确认门: "根本原因是 X，准备进入修复阶段，确认吗？"
-```
+调用 `superpowers:using-git-worktrees`。3+ 文件修改或影响范围大时建议隔离，单文件可跳过。
 
 ### 阶段 4 输出
 
-调用 `superpowers:using-git-worktrees`。3+ 文件修改或影响范围大时建议隔离，单文件可跳过。
+调用 `superpowers:systematic-debugging`，**完整运行 4 个 Phase**。Phase 4 已包含 TDD（创建失败测试 + 实现修复）。
 
-### 阶段 5 输出
-
-调用 `superpowers:test-driven-development`。→ 加载 `references/tdd-fix-guide.md`
+→ Bug 修复特有的 TDD 模式参考 `references/tdd-fix-guide.md`
 
 ```
-━━━ 阶段 5: TDD 修复循环 ━━━
+━━━ 阶段 4: 调试与修复 ━━━
+⛔ 根因确认 (Phase 1-3):
+  根本原因: <一句话>  涉及文件: <file:line>  验证证据: <描述>
+→ 确认门: "根本原因是 X，准备进入修复阶段，确认吗？"
+
+修复 (Phase 4, 已包含 TDD):
 RED:  测试 <名称> — FAIL <原因>
 GREEN: 修改 <file:line> — PASS
 回归:  命令 <cmd> — N passed, 0 failed
 ```
 
-### 阶段 6 输出
+### 阶段 5 输出
 
 调用 `superpowers:verification-before-completion`。→ 加载 `references/verification-guide.md`
 
 ```
-━━━ 阶段 6: 完成前验证 ━━━
+━━━ 阶段 5: 完成前验证 ━━━
 [ ] 全部测试: N passed, 0 failed
 [ ] lint/type: 通过
 [ ] 原复现步骤: Bug 不再出现
@@ -250,7 +239,7 @@ GREEN: 修改 <file:line> — PASS
 → 确认门: "Bug 已修复，可以提交吗？"
 ```
 
-### 阶段 7-8 输出
+### 阶段 6-7 输出
 
 依次调用 `superpowers:requesting-code-review` + `receiving-code-review` + `finishing-a-development-branch`。
 
@@ -262,8 +251,8 @@ GREEN: 修改 <file:line> — PASS
 
 1. **信息不足** (阶段 1): "缺少 XX 信息，请补充"
 2. **复现失败** (阶段 2): "无法复现，需要更多信息或进行代码审查分析"
-3. **根因确认** (阶段 3): "根本原因是 X，准备进入修复阶段，确认吗？"
-4. **修复完成** (阶段 6): "Bug 已修复，可以提交吗？"
+3. **根因确认** (阶段 4): "根本原因是 X，准备进入修复阶段，确认吗？"
+4. **修复完成** (阶段 5): "Bug 已修复，可以提交吗？"
 
 ## 转交条件
 
@@ -320,7 +309,7 @@ Bug: <简要描述>
 
 阶段耗时:
   阶段 1-2 (复现): ✅
-  阶段 3 (调试): ✅
-  阶段 5 (修复): ✅
-  阶段 6 (验证): ✅
+  阶段 3 (环境): ✅
+  阶段 4 (调试与修复): ✅
+  阶段 5 (验证): ✅
 ```
