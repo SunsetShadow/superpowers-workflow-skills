@@ -17,6 +17,46 @@
 - [ ] 确认 Bug 不再出现
 - [ ] 截图/日志对比修复前后
 
+### UI Bug Playwright 验证 (仅 UI Bug)
+
+**注意**: 非UI Bug 跳过此步骤
+
+**工具选择**: 与阶段 2 复现时使用的工具保持一致（参见 SKILL.md "Web 验证工具选择"）
+
+**验证流程**:
+1. 使用阶段 2 完全相同的 Playwright 步骤重新执行
+2. 确认 Bug 不再出现（断言通过）
+3. 截图保存修复后状态
+4. 对比修复前后截图
+
+```
+标准 Playwright 修复验证步骤:
+1. browser_navigate → 打开目标页面（同阶段 2）
+2. browser_snapshot → 确认页面状态
+3. 执行阶段 2 的触发操作 (click/type)
+4. 根据 Bug 的期望行为做断言 (元素存在/文本正确/无崩溃)
+5. browser_take_screenshot → 保存修复后截图
+```
+
+**证据格式**:
+```
+UI Bug 修复验证:
+
+复现步骤 (同阶段 2):
+  1. 打开 https://example.com/login
+  2. 输入用户名: (空)
+  3. 点击"提交"
+
+修复前 (阶段 2): 页面崩溃，白屏
+修复后 (阶段 5): 显示"请输入用户名"提示，页面正常
+
+截图对比:
+  修复前: reproduction-screenshot.png
+  修复后: fixed-screenshot.png
+
+Playwright 断言: ✅ 通过
+```
+
 ### 回归验证 ⚠️ REQUIRED
 
 - [ ] 确认相关功能仍正常工作

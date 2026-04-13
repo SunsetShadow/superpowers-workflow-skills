@@ -1,7 +1,7 @@
 ---
 name: bug-fix-workflow
 metadata:
-  version: 2.0.0
+  version: 2.1.0
   author: reeves_zd
   recommends:
     - superpowers:systematic-debugging
@@ -117,8 +117,11 @@ Bug 修复进度:
   - [ ] 2.5 (无法复现 → 无法复现处理流程)
 
 - [ ] 阶段 3: 环境准备 (根据严重程度决定)
-  - [ ] 3.1 判断是否需要隔离 (多文件修改/影响范围大/需要 PR)
-  - [ ] 3.2 如需隔离，调用 superpowers:using-git-worktrees
+  - [ ] 3.1 智能判断是否需要隔离:
+    - [ ] 检查 git log 作者数（单人/多人）
+    - [ ] 单人项目 + 单文件修改 + P2-P3 → 直接创建 fix branch，跳过 worktree
+    - [ ] 多人项目 / 3+ 文件修改 / P0-P1 → 调用 Skill(skill="superpowers:using-git-worktrees")
+  - [ ] 3.2 (如果跳过 worktree) 创建 fix branch: `fix/<bug-id>`
 
 - [ ] 阶段 4: 调试与修复 ⚠️ REQUIRED
   - [ ] 4.1 调用 superpowers:systematic-debugging (完整 4 阶段)
@@ -132,7 +135,11 @@ Bug 修复进度:
   - [ ] 5.2 运行全部测试，确认 0 failures
   - [ ] 5.3 运行 lint/type 检查
   - [ ] 5.4 使用原复现步骤验证 Bug 已修复
-  - [ ] 5.5 提供修复前后对比证据
+  - [ ] 5.5 (UI Bug) 基于 Playwright 的修复验证:
+    - [ ] 用阶段 2 相同的 Playwright 步骤重新执行
+    - [ ] 确认 Bug 不再出现（修复后截图 + 对比）
+    - [ ] 失败时调用 Skill(skill="superpowers:systematic-debugging")
+  - [ ] 5.6 提供修复前后对比证据
 
 - [ ] 阶段 6: 代码审查 (P0 可后补)
   - [ ] 6.1 调用 superpowers:requesting-code-review
@@ -163,6 +170,7 @@ Bug 快速修复进度:
 
 - [ ] 阶段 4: 验证 ⚠️ REQUIRED ⛔ BLOCKING
   - [ ] 测试通过、Bug 已修复
+  - [ ] (UI Bug) Playwright 验证修复
   - [ ] 提供修复前后证据
 
 ⚠️ 注意: 复现和验证阶段不可跳过
@@ -206,7 +214,7 @@ UI bug 参考"Web 验证工具选择"，非 UI bug 用命令行。→ 加载 `re
 
 ### 阶段 3 输出
 
-调用 `superpowers:using-git-worktrees`。3+ 文件修改或影响范围大时建议隔离，单文件可跳过。
+**智能判断**: 单人项目 + 单文件修改 + P2-P3 → 直接创建 fix branch，跳过 worktree。多人项目 / 3+ 文件 / P0-P1 → 调用 `superpowers:using-git-worktrees`。
 
 ### 阶段 4 输出
 
@@ -230,11 +238,14 @@ GREEN: 修改 <file:line> — PASS
 
 调用 `superpowers:verification-before-completion`。→ 加载 `references/verification-guide.md`
 
+**UI Bug Playwright 验证**: 用阶段 2 相同的 Playwright 步骤重新执行，确认 Bug 不再出现。
+
 ```
 ━━━ 阶段 5: 完成前验证 ━━━
 [ ] 全部测试: N passed, 0 failed
 [ ] lint/type: 通过
 [ ] 原复现步骤: Bug 不再出现
+[ ] (UI Bug) Playwright 验证: navigate → snapshot → 交互 → 截图对比
 [ ] 对比证据: 修复前 + 修复后
 → 确认门: "Bug 已修复，可以提交吗？"
 ```
@@ -291,6 +302,7 @@ GREEN: 修改 <file:line> — PASS
 
 - [ ] lint/type 检查通过
 - [ ] 代码审查通过
+- [ ] (UI Bug) Playwright 修复前后截图对比
 
 ### 完成时输出总结
 
