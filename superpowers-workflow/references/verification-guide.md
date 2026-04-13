@@ -65,14 +65,48 @@ eslint .
 
 **工具选择**: 参考 SKILL.md "Web 验证工具选择" 章节，选定后本阶段统一使用
 
-**验证内容**:
+**基于 tasks.json e2e 用例的验证流程**:
+
+1. 从 `docs/changes/<change-id>/tasks.json` 筛选所有 `testCases.type == "e2e"` 的用例
+2. 对每个 e2e 用例，按 given/when/then 执行 Playwright 操作:
+
+```
+标准 Playwright 验证步骤:
+1. browser_navigate → 打开目标页面
+2. browser_snapshot → 获取页面结构，确认 given 条件满足
+3. 根据 when 执行交互操作 (click/type/select)
+4. 根据 then 做断言 (snapshot 确认元素存在/文本正确/状态变化)
+5. browser_take_screenshot → 截图留证
+```
+
+3. 记录每个用例的验证结果
+
+**证据格式**:
+```
+e2e 验证汇总:
+
+| 用例ID | 给定条件 | 操作 | 预期结果 | 实际结果 | 截图 |
+|--------|---------|------|---------|---------|------|
+| TC-003 | 服务运行中 | POST /api/v1/upload 带 PNG | 200 + 元数据 | ✅ 通过 | tc-003.png |
+| TC-004 | 用户打开聊天页 | 查看输入框工具栏 | 三个按钮可见 | ✅ 通过 | tc-004.png |
+| TC-005 | 用户在聊天页 | 点击联网开关 | 按钮高亮切换 | ❌ 失败 | tc-005-fail.png |
+```
+
+4. 失败用例处理:
+   - 调用 `Skill(skill="superpowers:systematic-debugging")` 排查
+   - 修复后重新执行失败用例
+   - 禁止跳过失败用例声称验证通过
+
+**手动验证（无 e2e 用例时）**:
+
+如果 tasks.json 中没有定义 e2e 用例，按以下流程手动验证:
 1. 打开相关页面
 2. 确认新增/修改的元素已存在
 3. 测试交互功能是否正常
 4. 验证用户流程完整性
 5. 截图对比改动前后
 
-**证据格式**:
+**证据格式** (手动):
 ```
 验证项目: 用户登录功能
 验证结果:

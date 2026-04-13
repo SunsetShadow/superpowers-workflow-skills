@@ -1,7 +1,7 @@
 ---
 name: superpowers-workflow
 metadata:
-  version: 3.1.0
+  version: 3.2.0
   author: reeves_zd
 description: |
   端到端功能开发工作流，铁律: 设计批准前禁止实现。TDD 强制 + 设计审阅门。
@@ -91,25 +91,48 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
   - [ ] 1.4 判断: 是否 Web 应用? → 标记后续阶段需要 UI 验证
 
 - [ ] 阶段 2: 环境准备
-  - [ ] 2.1 调用 Skill(skill="superpowers:using-git-worktrees") 设置隔离工作区（含基线测试验证）
+  - [ ] 2.1 智能判断是否需要 worktree:
+    - [ ] 检查 git log 作者数（单人/多人）
+    - [ ] 检查是否已有活跃的 feature branch
+    - [ ] 单人项目 + 无并行需求 → 跳过 worktree，直接创建 feature branch，输出原因
+    - [ ] 多人项目或需要隔离 → 调用 Skill(skill="superpowers:using-git-worktrees")
+  - [ ] 2.2 (如果跳过 worktree) 创建 feature branch: `feature/<change-id>`
 
 - [ ] 阶段 3: 设计 ⚠️ REQUIRED
-  - [ ] 3.1 调用 Skill(skill="superpowers:brainstorming")，按其完整流程执行
-  - [ ] 3.2 brainstorming 自动调用 writing-plans，产出实施计划
-  - [ ] 3.3 按 references/doc-tasks.md 格式额外产出 tasks.json (进度跟踪)
-  - [ ] 3.4 获得用户批准的设计文档 ⛔ BLOCKING
-  - [ ] 3.5 ⛔ writing-plans 完成后，不要提供执行选择，回到主流程阶段 4
+  - [ ] 3.1 调用 Skill(skill="superpowers:brainstorming") — ⛔ 必须使用 Skill 工具调用，禁止手工模拟
+  - [ ] 3.2 brainstorming 完成探索 → 提问 → 方案 → 设计 → 文档写入 → 用户审阅批准
+  - [ ] 3.3 brainstorming 自动调用 writing-plans，产出实施计划（含 TDD 步骤）
+  - [ ] 3.4 按 references/doc-tasks.md 格式额外产出 tasks.json（含 testCases 字段）
+  - [ ] 3.5 ⛔ 产出物验证门 — 以下文件必须存在，缺少任一不可进入阶段 4:
+    - [ ] 设计文档: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+    - [ ] 实施计划: `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
+    - [ ] 任务跟踪: `docs/changes/<change-id>/tasks.json`
+  - [ ] 3.6 ⛔ writing-plans 完成后，不要提供执行选择，回到主流程阶段 4
 
 - [ ] 阶段 4: 执行 ⚠️ REQUIRED
   - [ ] 4.1 选择执行模式 (参考"执行模式选择")
-  - [ ] 4.2 按选定模式执行，执行技能已包含 TDD + per-task 审查
-  - [ ] 4.3 ⛔ 所有任务完成后，不要调用 finishing-a-development-branch，回到主流程阶段 5
+  - [ ] 4.2 ⛔ 严格遵守执行技能的全部流程，不允许跳过任何审查步骤
+  - [ ] 4.3 每完成一个任务，提供以下证据后才能更新 tasks.json:
+    - [ ] 测试运行命令 + 输出（证明 RED → GREEN）
+    - [ ] 更新 tasks.json: 所有 steps.completed = true → passes = true
+  - [ ] 4.4 TDD 合规检查 (每个任务完成后):
+    - [ ] 确认存在对应的测试文件
+    - [ ] 确认测试在实现代码之前创建（或至少同步创建）
+    - [ ] 没有测试文件 → STOP，不允许进入下一个任务
+  - [ ] 4.5 从 tasks.json 取下一个 passes != true 的任务，重复 4.2-4.4 直到所有 passes = true
+  - [ ] 4.6 ⛔ 所有任务完成后，不要调用 finishing-a-development-branch，回到主流程阶段 5
 
 - [ ] 阶段 5: 最终集成验证 ⚠️ REQUIRED
   - [ ] 5.1 调用 Skill(skill="superpowers:verification-before-completion")
   - [ ] 5.2 运行全部测试，确认 0 failures
   - [ ] 5.3 运行 lint/type 检查
-  - [ ] 5.4 (仅 Web 应用) 参考"Web 验证工具选择"验证新功能并截图
+  - [ ] 5.4 (仅 Web 应用) 基于 tasks.json 的 Playwright 功能验证:
+    - [ ] 从 tasks.json 筛选 testCases.type == "e2e" 的用例
+    - [ ] 对每个 e2e 用例:
+      - [ ] Playwright 执行: navigate → snapshot → 交互 → 断言
+      - [ ] 记录验证结果（通过/失败 + 截图）
+      - [ ] 失败时调用 Skill(skill="superpowers:systematic-debugging")
+    - [ ] 输出 e2e 验证汇总表: 用例ID | 给定条件 | 操作 | 预期结果 | 实际结果 | 截图
   - [ ] 5.5 提供验证证据 (命令 + 输出 + 退出码)
 
 - [ ] 阶段 6: 完成分支
@@ -134,6 +157,7 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
   - [ ] 运行测试命令，查看完整输出
   - [ ] 确认 0 failures
   - [ ] 运行 lint/type 检查
+  - [ ] (如果改动了 UI) Playwright 验证改动区域
   - [ ] 提供命令 + 输出 + 退出码证据
 
 - [ ] 阶段 4: 完成
@@ -188,9 +212,13 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 |-----|------|
 | 跳过需求分流直接设计 | 可能走错流程（bug 当功能做、大项目没分解） |
 | 跳过头脑风暴直接写代码 | 设计批准前禁止实现 |
+| 手工模拟 brainstorming 流程 | brainstorming = 文档产出 + writing-plans 调用，跳过它 = 跳过整个质量链 |
 | 覆盖 brainstorming 的流程 | brainstorming 已包含完整的探索+设计+审阅 |
+| 缺少产出物就进入阶段 4 | 设计文档 + 实施计划 + tasks.json 缺一不可 |
 | 单独调用 TDD 技能 | 执行技能已内部处理 TDD |
 | 单独调用代码审查技能 | 执行技能已包含 per-task 审查 + 最终审查 |
+| 跳过执行技能直接手写代码 | 执行技能包含 TDD + 审查，跳过 = 跳过全部质量保障 |
+| 没有测试文件就进入下一个任务 | TDD 合规检查：无测试 = STOP |
 | 执行完计划就停止 | 阶段 4 完成后必须继续阶段 5-6 |
 | 使用 "应该没问题" | 必须提供验证证据 |
 | 保留 "参考" 代码 | 会参考 = 后补测试 |
@@ -206,7 +234,8 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 
 | 阶段 | 加载文件 | 内容 |
 |------|---------|------|
-| 阶段 3 | `references/doc-tasks.md` | Tasks JSON 模板（进度跟踪） |
+| 阶段 3 | `references/doc-tasks.md` | Tasks JSON 模板（进度跟踪 + testCases） |
+| 阶段 5 | `references/verification-guide.md` | 验证流程（测试 + lint + Playwright e2e） |
 
 注: 阶段 3 的设计文档和实施计划由 brainstorming + writing-plans 自动产出。路径:
 - 设计文档 → brainstorming 默认路径 (`docs/superpowers/specs/`)
@@ -239,29 +268,35 @@ Web 应用验证阶段需先选择工具，选定后该阶段统一使用。
 
 ### 阶段 2: 环境准备
 
-调用 `superpowers:using-git-worktrees` 设置隔离工作区。
+**智能判断**: 先评估项目是否真的需要 worktree。
 
-**为什么提前**: brainstorming、writing-plans、执行技能都期望在 worktree 中运行。
+- 单人项目（git log 作者 ≤ 1）→ 直接创建 feature branch，跳过 worktree
+- 多人项目或需要隔离 → 调用 `superpowers:using-git-worktrees`
 
-该技能自带基线测试验证（确保 worktree 起点干净），无需额外步骤。
+**为什么提前**: brainstorming、writing-plans、执行技能都期望在隔离环境中运行。
 
 ### 阶段 3: 设计
 
-调用 `superpowers:brainstorming`，**完全遵循其自带流程**（探索、提问、提方案、写设计文档、审阅）。
+调用 `superpowers:brainstorming`，**⛔ 必须使用 Skill 工具调用，禁止手工模拟**。完全遵循其自带流程（探索、提问、提方案、写设计文档、审阅）。
 
-brainstorming 会自动调用 `writing-plans`，产出实施计划。
+brainstorming 会自动调用 `writing-plans`，产出实施计划（含 TDD RED/GREEN/REFACTOR 步骤）。
 
-**额外产出**: 按 `references/doc-tasks.md` 格式额外生成 tasks.json，保存到 `docs/changes/<change-id>/tasks.json`。tasks.json 提供轻量进度跟踪（与 writing-plans 的详细计划互补）。
+**额外产出**: 按 `references/doc-tasks.md` 格式额外生成 tasks.json（含 testCases 字段），保存到 `docs/changes/<change-id>/tasks.json`。tasks.json 提供轻量进度跟踪和 e2e 测试案例定义。
+
+**⛔ 产出物验证门** — 以下文件必须存在，缺少任一不可进入阶段 4:
+1. 设计文档: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+2. 实施计划: `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
+3. 任务跟踪: `docs/changes/<change-id>/tasks.json`
 
 **⛔ 两个覆盖指令**:
 1. writing-plans 完成后，**不要**提供执行选择，回到主流程阶段 4
 2. 接受 writing-plans 的默认文档格式和路径，不覆盖
 
-禁止: 跳过 brainstorming 的任何步骤 / 重复执行 brainstorming 已完成的探索 / 覆盖 brainstorming 的文档路径
+禁止: 跳过 brainstorming 的任何步骤 / 手工模拟 brainstorming / 重复执行 brainstorming 已完成的探索 / 覆盖 brainstorming 的文档路径 / 缺少产出物就进入阶段 4
 
 ### 阶段 4: 执行
 
-选择执行模式（参考"执行模式选择"），让执行技能按自带流程运行。
+选择执行模式（参考"执行模式选择"），**⛔ 严格遵守执行技能的全部流程，不允许跳过任何审查步骤**。
 
 执行技能已包含:
 - TDD 循环（RED → GREEN → REFACTOR）
@@ -269,9 +304,16 @@ brainstorming 会自动调用 `writing-plans`，产出实施计划。
 - per-task 代码质量审查
 - 最终整体代码审查
 
+**任务跟踪循环**:
+1. 从 tasks.json 取下一个 `passes != true` 的任务
+2. 执行该任务（通过执行技能的 TDD 流程）
+3. TDD 合规检查: 确认存在对应的测试文件，没有测试 → STOP
+4. 提供测试运行证据（命令 + 输出），更新 tasks.json
+5. 重复直到所有任务 `passes = true`
+
 **⛔ 覆盖指令**: 所有任务完成后，**不要**调用 `finishing-a-development-branch`，回到主流程阶段 5。
 
-禁止: 单独调用 TDD 技能（已包含）/ 单独调用代码审查技能（已包含）
+禁止: 单独调用 TDD 技能（已包含）/ 单独调用代码审查技能（已包含）/ 跳过执行技能直接手写代码 / 没有测试文件就进入下一个任务
 
 ### 阶段 5: 最终集成验证
 
@@ -280,10 +322,16 @@ brainstorming 会自动调用 `writing-plans`，产出实施计划。
 **为什么需要**: 执行技能的审查是单任务维度。这里做全量集成验证:
 - 所有测试一起跑（可能有跨任务的交互问题）
 - lint/type 全量检查
-- Web 应用截图对比
+- (Web 应用) 基于 tasks.json 的 Playwright 功能验证
 - 证据输出（命令 + 输出 + 退出码）
 
 → 加载 `references/verification-guide.md`
+
+**Playwright 功能验证流程** (仅 Web 应用):
+1. 从 tasks.json 筛选 `testCases.type == "e2e"` 的用例
+2. 对每个 e2e 用例: Playwright 执行 navigate → snapshot → 交互 → 断言
+3. 失败时调用 `Skill(skill="superpowers:systematic-debugging")`
+4. 输出 e2e 验证汇总表
 
 验证未通过时:
 1. 停止 → 调用 `Skill(skill="superpowers:systematic-debugging")`
@@ -322,10 +370,12 @@ brainstorming 会自动调用 `writing-plans`，产出实施计划。
 
 ### 完整模式额外检查
 
-- [ ] tasks.json 已输出到 `docs/changes/<change-id>/tasks.json`
+- [ ] tasks.json 已输出到 `docs/changes/<change-id>/tasks.json`（含 testCases）
 - [ ] 设计文档已由 brainstorming 产出
 - [ ] 实施计划已由 writing-plans 产出
-- [ ] (仅 Web 应用) 浏览器验证新功能（参见"Web 验证工具选择"）
+- [ ] tasks.json 所有任务 passes = true
+- [ ] 每个新增/修改的源文件有对应的测试文件
+- [ ] (仅 Web 应用) tasks.json 中 e2e 用例已通过 Playwright 验证
 
 ### 禁止的模糊表述
 
